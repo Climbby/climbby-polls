@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { CreatePollForm } from '../components/admin/CreatePollForm'
 import { PollManageList } from '../components/admin/PollManageList'
 import { SetupBanner } from '../components/SetupBanner'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
 import { adminSecret } from '../lib/supabase'
 import { isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/voter'
 
@@ -22,36 +24,34 @@ export function AdminPage() {
 
   if (!adminSecret) {
     return (
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6">
-        <h1 className="text-xl font-semibold text-white">Admin</h1>
-        <p className="mt-2 text-sm text-amber-200">
-          Set <code className="rounded bg-slate-900 px-1.5 py-0.5">VITE_ADMIN_SECRET</code> in your{' '}
-          <code className="rounded bg-slate-900 px-1.5 py-0.5">.env</code> (and Vercel) to enable the admin panel.
+      <Card>
+        <h1 className="text-lg font-semibold text-ink">Admin</h1>
+        <p className="mt-2 text-sm text-ink-secondary">
+          Set <code>VITE_ADMIN_SECRET</code> in <code>.env</code> and Vercel.
         </p>
-      </div>
+      </Card>
     )
   }
 
   if (!unlocked) {
     return (
-      <div className="mx-auto max-w-md">
-        <h1 className="mb-2 text-2xl font-bold text-white">Admin</h1>
-        <p className="mb-6 text-sm text-slate-400">Enter your admin secret to continue.</p>
-        <form onSubmit={handleUnlock} className="space-y-4">
-          <input
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            placeholder="Admin secret"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white focus:border-indigo-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-400"
-          >
-            Unlock
-          </button>
-        </form>
+      <div>
+        <h1 className="text-xl font-semibold text-ink">Admin</h1>
+        <p className="mb-4 mt-1 text-sm text-ink-secondary">Enter your secret to continue.</p>
+        <Card>
+          <form onSubmit={handleUnlock} className="space-y-4">
+            <input
+              type="password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              placeholder="Admin secret"
+              className="field-input"
+            />
+            <Button type="submit" fullWidth>
+              Unlock
+            </Button>
+          </form>
+        </Card>
       </div>
     )
   }
@@ -62,49 +62,40 @@ export function AdminPage() {
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin</h1>
-          <p className="text-sm text-slate-400">Create polls, publish, close, and moderate comments.</p>
+          <h1 className="text-xl font-semibold text-ink">Admin</h1>
+          <p className="text-sm text-ink-secondary">Create and manage polls.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            lockAdmin()
-            setUnlocked(false)
-          }}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-400 hover:text-white"
-        >
+        <Button variant="ghost" onClick={() => { lockAdmin(); setUnlocked(false) }}>
           Lock
-        </button>
+        </Button>
       </div>
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex gap-1 border-b border-line">
         {(['create', 'manage'] as const).map((value) => (
           <button
             key={value}
             type="button"
             onClick={() => setTab(value)}
             className={[
-              'rounded-full px-4 py-1.5 text-sm font-medium transition',
+              'border-b-2 px-3 py-2 text-sm font-medium transition',
               tab === value
-                ? 'bg-indigo-500 text-white'
-                : 'bg-slate-800 text-slate-400 hover:text-white',
+                ? 'border-accent text-ink'
+                : 'border-transparent text-ink-muted hover:text-ink-secondary',
             ].join(' ')}
           >
-            {value === 'create' ? 'Create poll' : 'Manage polls'}
+            {value === 'create' ? 'Create' : 'Manage'}
           </button>
         ))}
       </div>
 
       {createdMessage && (
-        <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-          {createdMessage}
-        </p>
+        <p className="mb-4 text-sm text-success">{createdMessage}</p>
       )}
 
       {tab === 'create' ? (
         <CreatePollForm
-          onCreated={(pollId) => {
-            setCreatedMessage(`Poll created (${pollId.slice(0, 8)}…). Switch to Manage polls to publish it.`)
+          onCreated={() => {
+            setCreatedMessage(`Poll created. Publish it from Manage.`)
             setTab('manage')
           }}
         />

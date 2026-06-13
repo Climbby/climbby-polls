@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PollComment } from '../lib/types'
+import { Button } from './ui/Button'
 
 interface CommentsProps {
   comments: PollComment[]
@@ -28,52 +29,41 @@ export function Comments({ comments, disabled, isSubmitting, onSubmit }: Comment
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Comments</h3>
-
-      <div className="space-y-3">
-        {comments.length === 0 ? (
-          <p className="text-sm text-slate-500">No comments yet. Start the conversation.</p>
-        ) : (
-          comments.map((comment) => (
-            <article
-              key={comment.id}
-              className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3"
-            >
-              <header className="mb-1 flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium text-indigo-300">{comment.author_name}</span>
-                <time className="text-xs text-slate-600">{formatTime(comment.created_at)}</time>
-              </header>
-              <p className="text-sm text-slate-300">{comment.body}</p>
-            </article>
-          ))
-        )}
-      </div>
+      {comments.length > 0 && (
+        <ul className="space-y-3">
+          {comments.map((comment) => (
+            <li key={comment.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-ink">{comment.author_name}</span>
+                <time className="text-xs text-ink-muted">{formatTime(comment.created_at)}</time>
+              </div>
+              <p className="mt-1 text-sm text-ink-secondary">{comment.body}</p>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {!disabled && (
-        <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="text"
-            placeholder="Your name"
+            placeholder="Name"
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
             maxLength={40}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+            className="field-input"
           />
           <textarea
-            placeholder="Share your thoughts…"
+            placeholder="Comment"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             maxLength={2000}
-            rows={3}
-            className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+            rows={2}
+            className="field-input resize-none"
           />
-          <button
-            type="submit"
-            disabled={isSubmitting || !authorName.trim() || !body.trim()}
-            className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Posting…' : 'Post comment'}
-          </button>
+          <Button type="submit" variant="secondary" disabled={isSubmitting || !authorName.trim() || !body.trim()}>
+            {isSubmitting ? 'Posting…' : 'Post'}
+          </Button>
         </form>
       )}
     </div>

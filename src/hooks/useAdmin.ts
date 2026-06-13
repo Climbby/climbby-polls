@@ -66,6 +66,7 @@ export function useCreatePoll() {
       return data as string
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['poll-feed'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'polls'] })
       void queryClient.invalidateQueries({ queryKey: ['polls'] })
     },
@@ -94,6 +95,7 @@ export function useSetPollStatus() {
       if (error) throw error
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['poll-feed'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'polls'] })
       void queryClient.invalidateQueries({ queryKey: ['polls'] })
       void queryClient.invalidateQueries({ queryKey: ['poll'] })

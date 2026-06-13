@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { Button } from '../ui/Button'
+import { Card } from '../ui/Card'
 import { useCategories } from '../../hooks/usePolls'
 import { useCreatePoll } from '../../hooks/useAdmin'
 import { slugify } from '../../lib/slug'
 import type { CreatePollOptionInput, PollStatus } from '../../lib/types'
 
-const DEFAULT_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#ef4444']
+const DEFAULT_COLORS = ['#2dd4bf', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#f87171']
 
 function emptyOptions(): CreatePollOptionInput[] {
   return [
@@ -83,21 +85,22 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+    <Card>
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">Title</label>
+        <label className="field-label">Title</label>
         <input
           required
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
           placeholder="What should we vote on?"
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+          className="field-input"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">URL slug</label>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <label className="field-label">URL slug</label>
+        <div className="flex items-center gap-2 text-sm text-ink-muted">
           <span>/polls/</span>
           <input
             required
@@ -106,29 +109,29 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
               setSlugEdited(true)
               setSlug(slugify(e.target.value))
             }}
-            className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+            className="field-input flex-1"
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-300">Description</label>
+        <label className="field-label">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           placeholder="Optional context for voters"
-          className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+          className="field-input resize-none"
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-300">Category</label>
+          <label className="field-label">Category</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+            className="field-input"
           >
             <option value="">None</option>
             {categories.map((cat) => (
@@ -140,11 +143,11 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-300">Initial status</label>
+          <label className="field-label">Initial status</label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as PollStatus)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+            className="field-input"
           >
             <option value="draft">Draft (hidden from home)</option>
             <option value="active">Active (live immediately)</option>
@@ -152,23 +155,23 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-slate-300">
+      <label className="flex items-center gap-2 text-sm text-ink-secondary">
         <input
           type="checkbox"
           checked={allowComments}
           onChange={(e) => setAllowComments(e.target.checked)}
-          className="rounded border-slate-600"
+          className="rounded ring-line"
         />
         Allow comments
       </label>
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-300">Options</label>
+          <label className="field-label mb-0">Options</label>
           <button
             type="button"
             onClick={addOption}
-            className="text-sm text-indigo-400 hover:text-indigo-300"
+            className="text-sm font-medium text-accent hover:text-accent-strong"
           >
             + Add option
           </button>
@@ -181,7 +184,7 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
                 type="color"
                 value={option.color}
                 onChange={(e) => updateOption(index, { color: e.target.value })}
-                className="h-11 w-12 shrink-0 cursor-pointer rounded-lg border border-slate-700 bg-slate-950"
+                className="h-11 w-12 shrink-0 cursor-pointer rounded-lg bg-canvas ring-1 ring-line"
                 title="Bar color"
               />
               <input
@@ -189,13 +192,13 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
                 value={option.label}
                 onChange={(e) => updateOption(index, { label: e.target.value })}
                 placeholder={`Option ${index + 1}`}
-                className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-indigo-500 focus:outline-none"
+                className="field-input flex-1"
               />
               <button
                 type="button"
                 disabled={options.length <= 2}
                 onClick={() => removeOption(index)}
-                className="rounded-xl border border-slate-700 px-3 text-slate-500 hover:text-red-400 disabled:opacity-30"
+                className="rounded-lg px-3 text-ink-muted ring-1 ring-line-soft hover:text-danger disabled:opacity-30"
               >
                 ✕
               </button>
@@ -205,18 +208,15 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
       </div>
 
       {createPoll.isError && (
-        <p className="text-sm text-red-400">
+        <p className="text-sm text-danger">
           {(createPoll.error as Error).message || 'Could not create poll.'}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={createPoll.isPending}
-        className="w-full rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={createPoll.isPending} fullWidth>
         {createPoll.isPending ? 'Creating…' : 'Create poll'}
-      </button>
+      </Button>
     </form>
+    </Card>
   )
 }

@@ -1,86 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import type { PollComment, PollOption, PollResultRow, PollWithDetails } from '../lib/types'
+import type { PollComment } from '../lib/types'
 import { getVoterToken } from '../lib/voter'
-
-async function fetchPollBySlug(slug: string): Promise<PollWithDetails | null> {
-  if (!supabase) return null
-
-  const { data: poll, error: pollError } = await supabase
-    .from('polls')
-    .select('*, poll_categories(*)')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  if (pollError) throw pollError
-  if (!poll) return null
-
-  const { data: options, error: optionsError } = await supabase
-    .from('poll_options')
-    .select('*')
-    .eq('poll_id', poll.id)
-    .order('sort_order')
-
-  if (optionsError) throw optionsError
-
-  const { data: results, error: resultsError } = await supabase
-    .from('poll_results')
-    .select('*')
-    .eq('poll_id', poll.id)
-    .order('sort_order')
-
-  if (resultsError) throw resultsError
-
-  const resultRows = (results ?? []) as PollResultRow[]
-  const totalVotes = resultRows.reduce((sum, row) => sum + row.vote_count, 0)
-
-  return {
-    ...(poll as PollWithDetails),
-    options: (options ?? []) as PollOption[],
-    results: resultRows,
-    total_votes: totalVotes,
-  }
-}
+import { fetchPollBySlug } from './usePollFeed'
 
 export function usePoll(slug: string) {
-  const queryClient = useQueryClient()
-
-  const query = useQuery({
+  return useQuery({
     queryKey: ['poll', slug],
     queryFn: () => fetchPollBySlug(slug),
     enabled: Boolean(slug),
   })
-
-  useEffect(() => {
-    const client = supabase
-    if (!client || !query.data?.id) return
-
-    const pollId = query.data.id
-    const channel = client
-      .channel(`poll-${pollId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'poll_votes', filter: `poll_id=eq.${pollId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['poll', slug] })
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'poll_comments', filter: `poll_id=eq.${pollId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['comments', pollId] })
-        },
-      )
-      .subscribe()
-
-    return () => {
-      void client.removeChannel(channel)
-    }
-  }, [query.data?.id, slug, queryClient])
-
-  return query
 }
 
 export function usePollComments(pollId: string | undefined) {
@@ -102,6 +31,10 @@ export function usePollComments(pollId: string | undefined) {
   })
 }
 
+function invalidateFeed(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: ['poll-feed'] })
+}
+
 export function useCastVote(slug: string) {
   const queryClient = useQueryClient()
 
@@ -118,6 +51,7 @@ export function useCastVote(slug: string) {
       if (error) throw error
     },
     onSuccess: () => {
+      invalidateFeed(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['poll', slug] })
     },
   })
