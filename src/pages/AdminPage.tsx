@@ -1,10 +1,17 @@
 import { useState } from 'react'
+import { CreatePollForm } from '../components/admin/CreatePollForm'
+import { PollManageList } from '../components/admin/PollManageList'
+import { SetupBanner } from '../components/SetupBanner'
 import { adminSecret } from '../lib/supabase'
 import { isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/voter'
+
+type AdminTab = 'create' | 'manage'
 
 export function AdminPage() {
   const [secret, setSecret] = useState('')
   const [unlocked, setUnlocked] = useState(isAdminUnlocked())
+  const [tab, setTab] = useState<AdminTab>('create')
+  const [createdMessage, setCreatedMessage] = useState<string | null>(null)
 
   function handleUnlock(e: React.FormEvent) {
     e.preventDefault()
@@ -19,7 +26,7 @@ export function AdminPage() {
         <h1 className="text-xl font-semibold text-white">Admin</h1>
         <p className="mt-2 text-sm text-amber-200">
           Set <code className="rounded bg-slate-900 px-1.5 py-0.5">VITE_ADMIN_SECRET</code> in your{' '}
-          <code className="rounded bg-slate-900 px-1.5 py-0.5">.env</code> file to enable the admin panel.
+          <code className="rounded bg-slate-900 px-1.5 py-0.5">.env</code> (and Vercel) to enable the admin panel.
         </p>
       </div>
     )
@@ -51,10 +58,12 @@ export function AdminPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <SetupBanner />
+
+      <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Admin</h1>
-          <p className="text-sm text-slate-400">Poll management — coming soon.</p>
+          <p className="text-sm text-slate-400">Create polls, publish, close, and moderate comments.</p>
         </div>
         <button
           type="button"
@@ -68,18 +77,40 @@ export function AdminPage() {
         </button>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 className="font-semibold text-white">Next up</h2>
-        <ul className="list-inside list-disc space-y-2 text-sm text-slate-400">
-          <li>Create polls with multiple options</li>
-          <li>Assign categories and schedule close times</li>
-          <li>Publish drafts and close active polls</li>
-          <li>Moderate comments</li>
-        </ul>
-        <p className="text-xs text-slate-600">
-          For now, manage polls directly in the Supabase dashboard or SQL editor.
-        </p>
+      <div className="mb-6 flex gap-2">
+        {(['create', 'manage'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTab(value)}
+            className={[
+              'rounded-full px-4 py-1.5 text-sm font-medium transition',
+              tab === value
+                ? 'bg-indigo-500 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white',
+            ].join(' ')}
+          >
+            {value === 'create' ? 'Create poll' : 'Manage polls'}
+          </button>
+        ))}
       </div>
+
+      {createdMessage && (
+        <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {createdMessage}
+        </p>
+      )}
+
+      {tab === 'create' ? (
+        <CreatePollForm
+          onCreated={(pollId) => {
+            setCreatedMessage(`Poll created (${pollId.slice(0, 8)}…). Switch to Manage polls to publish it.`)
+            setTab('manage')
+          }}
+        />
+      ) : (
+        <PollManageList />
+      )}
     </div>
   )
 }

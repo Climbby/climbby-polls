@@ -25,3 +25,4 @@ dist-ssr
 
 # Env (real keys live in .env; .env.example is committed)
 .env
+.vercel

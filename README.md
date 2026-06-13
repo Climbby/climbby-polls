@@ -2,21 +2,24 @@
 
 Live community polls by [Climbby](https://github.com/Climbby) — vote from a link, watch results update in real time, leave comments, and browse past polls by category.
 
+**Live:** https://climbby-polls.vercel.app  
+**Repo:** https://github.com/Climbby/climbby-polls
+
 ## Status
 
-Scaffolded (2026-06-13). Frontend shell + Supabase schema are in place. Wire up a Supabase project and start building features.
+Admin panel + Supabase RPCs shipped (2026-06-13). Run the Supabase setup once, then create and manage polls from `/admin`.
 
-## Features (planned)
+## Features
 
-| Area | v1 | v2 |
-|------|----|----|
-| Browse polls by category | ✅ scaffold | |
-| Vote via shareable URL (`/polls/:slug`) | ✅ scaffold | |
-| Live results (Supabase Realtime) | ✅ scaffold | |
-| Comments on active polls | ✅ scaffold | |
-| Archive of closed polls | ✅ scaffold | |
-| Admin panel (create/close polls) | stub | full UI |
-| Chat voting (Twitch/YouTube bot) | | planned |
+| Area | Status |
+|------|--------|
+| Browse polls by category | ✅ |
+| Vote via shareable URL (`/polls/:slug`) | ✅ |
+| Live results (Supabase Realtime) | ✅ |
+| Comments on active polls | ✅ |
+| Archive of closed polls | ✅ |
+| Admin panel (create/publish/close/moderate) | ✅ |
+| Chat voting (Twitch/YouTube bot) | planned |
 
 ## Stack
 
@@ -39,43 +42,24 @@ npm run dev
 
 ### Supabase setup
 
-1. Create a new Supabase project (dedicated to polls — separate from GuessIt).
-2. Run the migration in `supabase/migrations/20260613120000_init.sql` via the SQL editor or Supabase CLI.
-3. Copy the project URL + anon key into `.env`.
+**Full walkthrough:** [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
 
-The seed migration creates three categories and a demo poll at `/polls/welcome-poll`.
+Short version:
 
-## Project structure
-
-```
-src/
-├── components/   Layout, PollCard, PollResults, VoteForm, Comments
-├── hooks/        usePoll, usePolls, usePollResults
-├── lib/          supabase client, types, voter identity
-└── pages/        Home, Poll, Archive, Admin
-```
-
-## Vote links
-
-Share a poll page directly:
-
-```
-https://your-domain.com/polls/welcome-poll
-```
-
-Pre-select an option via query param (future):
-
-```
-https://your-domain.com/polls/welcome-poll?vote=<option-id>
-```
+1. Create a Supabase project.
+2. Run both migrations in `supabase/migrations/` (SQL editor).
+3. Insert your admin secret into `private.app_config` (must match `VITE_ADMIN_SECRET`).
+4. Copy URL + anon key into `.env` and Vercel.
 
 ## Admin
 
-Set `VITE_ADMIN_SECRET` in `.env`. Visit `/admin` and enter the secret to unlock the admin stub. Full poll management UI comes next.
+1. Set `VITE_ADMIN_SECRET` locally and on Vercel.
+2. Sync the same value in Supabase (`private.app_config`).
+3. Visit `/admin`, unlock, create polls, publish, close, moderate comments.
 
 ## Deploy
 
-Built for [Vercel](https://vercel.com) (static SPA). Set the same env vars in the Vercel dashboard.
+Hosted on [Vercel](https://vercel.com). After changing env vars, redeploy so Vite picks them up.
 
 ## License
 

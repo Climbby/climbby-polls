@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'climbby-polls:voter-token'
+const ADMIN_KEY = 'climbby-polls:admin-secret'
 
 export function getVoterToken(): string {
   let token = localStorage.getItem(STORAGE_KEY)
@@ -10,15 +11,19 @@ export function getVoterToken(): string {
 }
 
 export function isAdminUnlocked(): boolean {
-  return sessionStorage.getItem('climbby-polls:admin') === '1'
+  return Boolean(getAdminSecret())
+}
+
+export function getAdminSecret(): string | null {
+  return sessionStorage.getItem(ADMIN_KEY)
 }
 
 export function unlockAdmin(secret: string, expected: string): boolean {
   if (!expected || secret !== expected) return false
-  sessionStorage.setItem('climbby-polls:admin', '1')
+  sessionStorage.setItem(ADMIN_KEY, secret)
   return true
 }
 
 export function lockAdmin(): void {
-  sessionStorage.removeItem('climbby-polls:admin')
+  sessionStorage.removeItem(ADMIN_KEY)
 }

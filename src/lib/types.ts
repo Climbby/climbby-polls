@@ -66,3 +66,33 @@ export interface PollWithDetails extends Poll {
   results: PollResultRow[]
   total_votes: number
 }
+
+export interface AdminPollRow {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+  category_id: string | null
+  category_name: string | null
+  status: PollStatus
+  allow_comments: boolean
+  vote_count: number
+  comment_count: number
+  created_at: string
+  closed_at: string | null
+}
+
+export interface CreatePollOptionInput {
+  label: string
+  color: string
+}
+
+export interface CreatePollInput {
+  slug: string
+  title: string
+  description: string
+  categoryId: string | null
+  allowComments: boolean
+  status: PollStatus
+  options: CreatePollOptionInput[]
+}
