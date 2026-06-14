@@ -1,9 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router'
+import { PollsShell } from '../components/layout/PollsShell'
 import { Layout } from '../components/Layout'
 import { AdminPage } from '../pages/AdminPage'
 import { AuthCallbackPage } from '../pages/AuthCallbackPage'
 import { CreatorManagePage } from '../pages/CreatorManagePage'
-import { LandingPage } from '../pages/LandingPage'
+import { LandingContent } from '../pages/LandingContent'
 import { LegacyPollRedirectPage } from '../pages/LegacyPollRedirectPage'
 import { TenantPollRedirectPage } from '../pages/TenantPollRedirectPage'
 import { TenantPollsPage } from '../pages/TenantPollsPage'
@@ -14,8 +15,12 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+      <Route path="/" element={<PollsShell />}>
+        <Route index element={<LandingContent />} />
+        <Route path=":tenantSlug" element={<TenantPollsPage />} />
+      </Route>
 
       <Route element={<Layout />}>
         <Route path="climbby/admin" element={<AdminPage />} />
@@ -25,7 +30,6 @@ export function AppRoutes() {
 
         <Route path=":tenantSlug/manage" element={<CreatorManagePage />} />
         <Route path=":tenantSlug/polls/:slug" element={<TenantPollRedirectPage />} />
-        <Route path=":tenantSlug" element={<TenantPollsPage />} />
       </Route>
     </Routes>
   )
