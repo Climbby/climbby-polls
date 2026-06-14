@@ -123,3 +123,26 @@ export function useDeleteComment() {
     },
   })
 }
+
+export function useAdminDeletePoll() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (pollId: string) => {
+      if (!supabase) throw new Error('Supabase is not configured')
+
+      const { error } = await supabase.rpc('admin_delete_poll', {
+        admin_secret_input: requireAdminSecret(),
+        poll_id_input: pollId,
+      })
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['poll-feed'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'polls'] })
+      void queryClient.invalidateQueries({ queryKey: ['polls'] })
+      void queryClient.invalidateQueries({ queryKey: ['creator'] })
+    },
+  })
+}

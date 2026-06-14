@@ -1,53 +1,42 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
-import { useCategories } from '../../hooks/usePolls'
 import { useCreatePoll } from '../../hooks/useAdmin'
-import { slugify } from '../../lib/slug'
-import type { CreatePollOptionInput, PollStatus } from '../../lib/types'
-
-const DEFAULT_COLORS = ['#2dd4bf', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#f87171']
+import { useCreatorCreatePoll } from '../../hooks/useCreatorManage'
+import type { CreatePollOptionInput } from '../../lib/types'
 
 function emptyOptions(): CreatePollOptionInput[] {
-  return [
-    { label: '', color: DEFAULT_COLORS[0] },
-    { label: '', color: DEFAULT_COLORS[1] },
-  ]
+  return [{ label: '', color: '' }, { label: '', color: '' }]
 }
 
 interface CreatePollFormProps {
   onCreated: (pollId: string) => void
+  onCancel?: () => void
+  variant?: 'admin' | 'creator'
+  presentation?: 'card' | 'inline'
 }
 
-export function CreatePollForm({ onCreated }: CreatePollFormProps) {
-  const { data: categories = [] } = useCategories()
-  const createPoll = useCreatePoll()
+export function CreatePollForm({
+  onCreated,
+  onCancel,
+  variant = 'admin',
+  presentation = 'card',
+}: CreatePollFormProps) {
+  const adminCreatePoll = useCreatePoll()
+  const creatorCreatePoll = useCreatorCreatePoll()
+  const createPoll = variant === 'creator' ? creatorCreatePoll : adminCreatePoll
+  const isInline = presentation === 'inline'
 
   const [title, setTitle] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugEdited, setSlugEdited] = useState(false)
-  const [description, setDescription] = useState('')
-  const [categoryId, setCategoryId] = useState<string>('')
   const [allowComments, setAllowComments] = useState(true)
-  const [status, setStatus] = useState<PollStatus>('draft')
   const [options, setOptions] = useState<CreatePollOptionInput[]>(emptyOptions)
 
-  function handleTitleChange(value: string) {
-    setTitle(value)
-    if (!slugEdited) {
-      setSlug(slugify(value))
-    }
-  }
-
-  function updateOption(index: number, patch: Partial<CreatePollOptionInput>) {
-    setOptions((prev) => prev.map((opt, i) => (i === index ? { ...opt, ...patch } : opt)))
+  function updateOption(index: number, label: string) {
+    setOptions((prev) => prev.map((opt, i) => (i === index ? { ...opt, label } : opt)))
   }
 
   function addOption() {
-    setOptions((prev) => [
-      ...prev,
-      { label: '', color: DEFAULT_COLORS[prev.length % DEFAULT_COLORS.length] },
-    ])
+    setOptions((prev) => [...prev, { label: '', color: '' }])
   }
 
   function removeOption(index: number) {
@@ -55,104 +44,56 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
     setOptions((prev) => prev.filter((_, i) => i !== index))
   }
 
+  function resetForm() {
+    setTitle('')
+    setAllowComments(true)
+    setOptions(emptyOptions())
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
     createPoll.mutate(
       {
-        slug,
+        slug: '',
         title,
-        description,
-        categoryId: categoryId || null,
+        description: '',
+        categoryId: null,
         allowComments,
-        status,
-        options: options.filter((o) => o.label.trim()),
+        status: 'active',
+        options: options.filter((o) => o.label.trim()).map((o) => ({ label: o.label, color: '' })),
       },
       {
         onSuccess: (pollId) => {
-          setTitle('')
-          setSlug('')
-          setSlugEdited(false)
-          setDescription('')
-          setCategoryId('')
-          setAllowComments(true)
-          setStatus('draft')
-          setOptions(emptyOptions())
+          resetForm()
           onCreated(pollId)
         },
       },
     )
   }
 
-  return (
-    <Card>
-    <form onSubmit={handleSubmit} className="space-y-6">
+  const optionInputClass = isInline
+    ? 'field-input w-full !rounded-md !py-2.5 text-sm md:!rounded-lg md:!py-3 md:text-base'
+    : 'field-input flex-1'
+
+  const form = (
+    <form onSubmit={handleSubmit} className={isInline ? 'space-y-4 md:space-y-5' : 'space-y-6'}>
       <div>
-        <label className="field-label">Title</label>
+        {!isInline && <label className="field-label">Title</label>}
         <input
           required
           value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="What should we vote on?"
-          className="field-input"
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={isInline ? 'Poll title…' : 'What should we vote on?'}
+          className={
+            isInline
+              ? 'w-full bg-transparent text-base font-semibold leading-snug text-ink placeholder:text-ink-muted focus:outline-none sm:text-lg md:text-xl md:leading-tight'
+              : 'field-input'
+          }
         />
-      </div>
-
-      <div>
-        <label className="field-label">URL slug</label>
-        <div className="flex items-center gap-2 text-sm text-ink-muted">
-          <span>/polls/</span>
-          <input
-            required
-            value={slug}
-            onChange={(e) => {
-              setSlugEdited(true)
-              setSlug(slugify(e.target.value))
-            }}
-            className="field-input flex-1"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="field-label">Description</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          placeholder="Optional context for voters"
-          className="field-input resize-none"
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="field-label">Category</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="field-input"
-          >
-            <option value="">None</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="field-label">Initial status</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as PollStatus)}
-            className="field-input"
-          >
-            <option value="draft">Draft (hidden from home)</option>
-            <option value="active">Active (live immediately)</option>
-          </select>
-        </div>
+        {isInline && (
+          <p className="mt-1 text-xs text-ink-muted md:text-sm">New poll · goes live when you publish</p>
+        )}
       </div>
 
       <label className="flex items-center gap-2 text-sm text-ink-secondary">
@@ -167,7 +108,8 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <label className="field-label mb-0">Options</label>
+          {!isInline && <label className="field-label mb-0">Options</label>}
+          {isInline && <span className="text-xs font-medium text-ink-muted md:text-sm">Options</span>}
           <button
             type="button"
             onClick={addOption}
@@ -177,22 +119,15 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
           </button>
         </div>
 
-        <div className="space-y-2">
+        <div className={isInline ? 'space-y-2 md:space-y-2.5' : 'space-y-2'}>
           {options.map((option, index) => (
             <div key={index} className="flex gap-2">
               <input
-                type="color"
-                value={option.color}
-                onChange={(e) => updateOption(index, { color: e.target.value })}
-                className="h-11 w-12 shrink-0 cursor-pointer rounded-lg bg-canvas ring-1 ring-line"
-                title="Bar color"
-              />
-              <input
                 required
                 value={option.label}
-                onChange={(e) => updateOption(index, { label: e.target.value })}
+                onChange={(e) => updateOption(index, e.target.value)}
                 placeholder={`Option ${index + 1}`}
-                className="field-input flex-1"
+                className={optionInputClass}
               />
               <button
                 type="button"
@@ -213,10 +148,34 @@ export function CreatePollForm({ onCreated }: CreatePollFormProps) {
         </p>
       )}
 
-      <Button type="submit" disabled={createPoll.isPending} fullWidth>
-        {createPoll.isPending ? 'Creating…' : 'Create poll'}
-      </Button>
+      <div className={isInline ? 'flex flex-wrap gap-2 pt-1' : ''}>
+        {isInline && onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel} className="flex-1 sm:flex-none">
+            Cancel
+          </Button>
+        )}
+        <Button
+          type="submit"
+          disabled={createPoll.isPending}
+          fullWidth={!isInline}
+          className={isInline ? 'flex-1 sm:min-w-[10rem]' : ''}
+        >
+          {createPoll.isPending ? 'Publishing…' : isInline ? 'Publish poll' : 'Create poll'}
+        </Button>
+      </div>
     </form>
-    </Card>
   )
+
+  if (isInline) {
+    return (
+      <article
+        id="create-poll-draft"
+        className="poll-block scroll-mt-6 p-4 sm:p-5 md:p-6 lg:p-7"
+      >
+        {form}
+      </article>
+    )
+  }
+
+  return <Card>{form}</Card>
 }

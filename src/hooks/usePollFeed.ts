@@ -2,12 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { PollOption, PollResultRow, PollWithDetails } from '../lib/types'
 
-async function fetchPollsWithDetails(status: 'active' | 'closed'): Promise<PollWithDetails[]> {
+async function fetchPollsWithDetails(
+  creatorId: string,
+  status: 'active' | 'closed',
+): Promise<PollWithDetails[]> {
   if (!supabase) return []
 
   const { data: polls, error: pollsError } = await supabase
     .from('polls')
     .select('*, poll_categories(*)')
+    .eq('creator_id', creatorId)
     .eq('status', status)
     .order('created_at', { ascending: false })
 
@@ -53,15 +57,17 @@ function groupBy<T extends { poll_id: string }>(
   return map
 }
 
-export function usePollFeed() {
+export function usePollFeed(creatorId: string | undefined) {
   const active = useQuery({
-    queryKey: ['poll-feed', 'active'],
-    queryFn: () => fetchPollsWithDetails('active'),
+    queryKey: ['poll-feed', creatorId, 'active'],
+    queryFn: () => fetchPollsWithDetails(creatorId!, 'active'),
+    enabled: Boolean(creatorId),
   })
 
   const closed = useQuery({
-    queryKey: ['poll-feed', 'closed'],
-    queryFn: () => fetchPollsWithDetails('closed'),
+    queryKey: ['poll-feed', creatorId, 'closed'],
+    queryFn: () => fetchPollsWithDetails(creatorId!, 'closed'),
+    enabled: Boolean(creatorId),
   })
 
   return {
@@ -72,8 +78,11 @@ export function usePollFeed() {
   }
 }
 
-export async function fetchPollBySlug(slug: string): Promise<PollWithDetails | null> {
-  const active = await fetchPollsWithDetails('active')
-  const closed = await fetchPollsWithDetails('closed')
-  return [...active, ...closed].find((poll) => poll.slug === slug) ?? null
+export async function fetchPollBySlug(
+  creatorId: string,
+  pollSlug: string,
+): Promise<PollWithDetails | null> {
+  const active = await fetchPollsWithDetails(creatorId, 'active')
+  const closed = await fetchPollsWithDetails(creatorId, 'closed')
+  return [...active, ...closed].find((poll) => poll.slug === pollSlug) ?? null
 }

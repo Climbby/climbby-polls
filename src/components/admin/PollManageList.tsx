@@ -1,20 +1,53 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
 import {
   useAdminComments,
+  useAdminDeletePoll,
   useAdminPolls,
   useDeleteComment,
   useSetPollStatus,
 } from '../../hooks/useAdmin'
-import type { AdminPollRow } from '../../lib/types'
+import {
+  useCreatorComments,
+  useCreatorDeleteComment,
+  useCreatorDeletePoll,
+  useCreatorPolls,
+  useCreatorSetPollStatus,
+} from '../../hooks/useCreatorManage'
+import type { AdminPollRow, PollComment } from '../../lib/types'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
+import { CommentIcon, IconButton, TrashIcon } from '../ui/IconButton'
 
-function PollCommentsModeration({ pollId }: { pollId: string }) {
-  const { data: comments = [] } = useAdminComments(pollId)
-  const deleteComment = useDeleteComment()
+function CommentList({
+  comments,
+  isLoading,
+  isError,
+  onDelete,
+  isDeleting,
+}: {
+  comments: PollComment[] | undefined
+  isLoading: boolean
+  isError: boolean
+  onDelete: (commentId: string) => void
+  isDeleting: boolean
+}) {
+  if (isLoading) {
+    return (
+      <div className="mt-4 border-t border-line pt-4">
+        <div className="h-10 animate-pulse rounded-lg bg-surface-muted" />
+      </div>
+    )
+  }
 
-  if (comments.length === 0) return null
+  if (isError) {
+    return (
+      <p className="mt-4 border-t border-line pt-4 text-sm text-danger">Could not load comments.</p>
+    )
+  }
+
+  if (!comments?.length) {
+    return <p className="mt-4 border-t border-line pt-4 text-sm text-ink-muted">No comments yet.</p>
+  }
 
   return (
     <div className="mt-4 space-y-2 border-t border-line pt-4">
@@ -26,8 +59,8 @@ function PollCommentsModeration({ pollId }: { pollId: string }) {
           </div>
           <button
             type="button"
-            disabled={deleteComment.isPending}
-            onClick={() => deleteComment.mutate(comment.id)}
+            disabled={isDeleting}
+            onClick={() => onDelete(comment.id)}
             className="text-xs text-danger"
           >
             Delete
@@ -38,20 +71,106 @@ function PollCommentsModeration({ pollId }: { pollId: string }) {
   )
 }
 
-function PollRow({ poll }: { poll: AdminPollRow }) {
-  const setStatus = useSetPollStatus()
-  const [expanded, setExpanded] = useState(false)
+function CreatorPollComments({ pollId }: { pollId: string }) {
+  const { data: comments, isLoading, isError } = useCreatorComments(pollId)
+  const deleteComment = useCreatorDeleteComment()
+
+  return (
+    <CommentList
+      comments={comments}
+      isLoading={isLoading}
+      isError={isError}
+      onDelete={(id) => deleteComment.mutate(id)}
+      isDeleting={deleteComment.isPending}
+    />
+  )
+}
+
+function AdminPollComments({ pollId }: { pollId: string }) {
+  const { data: comments, isLoading, isError } = useAdminComments(pollId)
+  const deleteComment = useDeleteComment()
+
+  return (
+    <CommentList
+      comments={comments}
+      isLoading={isLoading}
+      isError={isError}
+      onDelete={(id) => deleteComment.mutate(id)}
+      isDeleting={deleteComment.isPending}
+    />
+  )
+}
+
+function PollCommentsModeration({
+  pollId,
+  variant,
+}: {
+  pollId: string
+  variant: 'admin' | 'creator'
+}) {
+  if (variant === 'creator') {
+    return <CreatorPollComments pollId={pollId} />
+  }
+  return <AdminPollComments pollId={pollId} />
+}
+
+function PollRow({
+  poll,
+  variant,
+  tenantSlug,
+  commentsOpen,
+  onToggleComments,
+}: {
+  poll: AdminPollRow
+  variant: 'admin' | 'creator'
+  tenantSlug: string
+  commentsOpen: boolean
+  onToggleComments: () => void
+}) {
+  const adminSetStatus = useSetPollStatus()
+  const creatorSetStatus = useCreatorSetPollStatus()
+  const adminDeletePoll = useAdminDeletePoll()
+  const creatorDeletePoll = useCreatorDeletePoll()
+  const setStatus = variant === 'creator' ? creatorSetStatus : adminSetStatus
+  const deletePoll = variant === 'creator' ? creatorDeletePoll : adminDeletePoll
+
+  function handleDelete() {
+    if (!window.confirm(`Delete "${poll.title}"? This cannot be undone.`)) return
+    deletePoll.mutate(poll.id)
+  }
 
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs text-ink-muted">
-            {poll.status} · /polls/{poll.slug} · {poll.vote_count} votes
+            {poll.status}
+            {variant === 'admin' ? ` · /${tenantSlug}/polls/${poll.slug}` : ''} · {poll.vote_count}{' '}
+            votes
+            {poll.comment_count > 0 ? ` · ${poll.comment_count} comments` : ''}
           </p>
           <h3 className="mt-1 text-lg font-semibold text-ink">{poll.title}</h3>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {poll.allow_comments && (
+              <IconButton
+                label={poll.comment_count > 0 ? `Comments (${poll.comment_count})` : 'Comments'}
+                onClick={onToggleComments}
+                className={commentsOpen ? 'bg-surface-muted text-ink' : ''}
+              >
+                <CommentIcon />
+              </IconButton>
+            )}
+            <IconButton
+              label="Delete poll"
+              onClick={handleDelete}
+              disabled={deletePoll.isPending}
+              className="text-ink-muted hover:text-danger"
+            >
+              <TrashIcon />
+            </IconButton>
+          </div>
           {(poll.status === 'draft' || poll.status === 'closed') && (
             <Button
               variant="secondary"
@@ -63,42 +182,33 @@ function PollRow({ poll }: { poll: AdminPollRow }) {
             </Button>
           )}
           {poll.status === 'active' && (
-            <>
-              <Button
-                variant="secondary"
-                disabled={setStatus.isPending}
-                onClick={() => setStatus.mutate({ pollId: poll.id, status: 'closed' })}
-                className="!px-3 !py-1.5 !text-xs"
-              >
-                Close
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={setStatus.isPending}
-                onClick={() => setStatus.mutate({ pollId: poll.id, status: 'draft' })}
-                className="!px-3 !py-1.5 !text-xs"
-              >
-                Unpublish
-              </Button>
-            </>
-          )}
-          <Link to={`/polls/${poll.slug}`} className="inline-flex items-center px-3 py-1.5 text-xs text-accent">
-            View
-          </Link>
-          {poll.comment_count > 0 && (
-            <Button variant="ghost" onClick={() => setExpanded((v) => !v)} className="!px-3 !py-1.5 !text-xs">
-              {expanded ? 'Hide' : 'Comments'}
+            <Button
+              variant="secondary"
+              disabled={setStatus.isPending}
+              onClick={() => setStatus.mutate({ pollId: poll.id, status: 'closed' })}
+              className="!px-3 !py-1.5 !text-xs"
+            >
+              Close votes
             </Button>
           )}
         </div>
       </div>
-      {expanded && <PollCommentsModeration pollId={poll.id} />}
+      {commentsOpen && <PollCommentsModeration pollId={poll.id} variant={variant} />}
     </Card>
   )
 }
 
-export function PollManageList() {
-  const { data: polls = [], isLoading, error } = useAdminPolls()
+export function PollManageList({
+  variant = 'admin',
+  tenantSlug = 'climbby',
+}: {
+  variant?: 'admin' | 'creator'
+  tenantSlug?: string
+}) {
+  const adminPolls = useAdminPolls()
+  const creatorPolls = useCreatorPolls()
+  const { data: polls = [], isLoading, error } = variant === 'creator' ? creatorPolls : adminPolls
+  const [openCommentsPollId, setOpenCommentsPollId] = useState<string | null>(null)
 
   if (isLoading) {
     return (
@@ -121,7 +231,16 @@ export function PollManageList() {
   return (
     <div className="space-y-3">
       {polls.map((poll) => (
-        <PollRow key={poll.id} poll={poll} />
+        <PollRow
+          key={poll.id}
+          poll={poll}
+          variant={variant}
+          tenantSlug={tenantSlug}
+          commentsOpen={openCommentsPollId === poll.id}
+          onToggleComments={() =>
+            setOpenCommentsPollId((current) => (current === poll.id ? null : poll.id))
+          }
+        />
       ))}
     </div>
   )

@@ -98,3 +98,4 @@ Realtime is enabled by the init migration. If live updates don't work:
 | Poll not found | Poll is still `draft` — publish it from admin |
 | Can't vote | Poll must be `active` |
 | No live updates | Check Realtime publication; hard-refresh the page |
+| "Email rate limit exceeded" on sign-in | Supabase limits magic-link emails (~4/hour on free tier). Wait up to an hour or use your last sign-in link from email |

@@ -26,8 +26,8 @@ export function Button({
     <button
       type={type}
       className={[
-        'inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition',
-        'disabled:cursor-not-allowed disabled:opacity-45',
+        'transition-interactive inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium',
+        'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45',
         variantClasses[variant],
         fullWidth ? 'w-full' : '',
         className,

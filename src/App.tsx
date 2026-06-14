@@ -1,10 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
-import { Layout } from './components/Layout'
+import { BrowserRouter } from 'react-router'
+import { AuthorNameProvider } from './lib/AuthorNameProvider'
+import { AuthProvider } from './lib/auth/AuthProvider'
 import { ThemeProvider } from './lib/ThemeProvider'
-import { AdminPage } from './pages/AdminPage'
-import { HomePage } from './pages/HomePage'
-import { PollRedirectPage } from './pages/PollRedirectPage'
+import { AppRoutes } from './routes/AppRoutes'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,18 +17,15 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route index element={<HomePage />} />
-              <Route path="polls/:slug" element={<PollRedirectPage />} />
-              <Route path="archive" element={<Navigate to="/" replace />} />
-              <Route path="admin" element={<AdminPage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>
+      <AuthorNameProvider>
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </QueryClientProvider>
+        </AuthProvider>
+      </AuthorNameProvider>
     </ThemeProvider>
   )
 }

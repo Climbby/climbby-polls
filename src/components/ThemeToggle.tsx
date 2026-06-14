@@ -9,7 +9,7 @@ export function ThemeToggle() {
     <IconButton
       label={label}
       onClick={toggleTheme}
-      className="fixed right-4 top-4 z-20 bg-surface ring-1 ring-line"
+      className="text-ink-muted hover:bg-transparent hover:text-ink"
     >
       {theme === 'light' ? <MoonIcon /> : <SunIcon />}
     </IconButton>

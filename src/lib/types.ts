@@ -16,12 +16,26 @@ export interface Poll {
   title: string
   description: string | null
   category_id: string | null
+  creator_id: string
   status: PollStatus
   allow_comments: boolean
   closes_at: string | null
   created_at: string
   closed_at: string | null
   poll_categories?: PollCategory | null
+}
+
+export interface Creator {
+  id: string
+  slug: string
+  display_name: string
+  created_at: string
+}
+
+export interface CreatorDashboard extends Creator {
+  active_polls: number
+  closed_polls: number
+  total_votes: number
 }
 
 export interface PollOption {
@@ -49,6 +63,8 @@ export interface PollComment {
   poll_id: string
   author_name: string
   body: string
+  option_id: string | null
+  is_creator: boolean
   created_at: string
 }
 

@@ -3,22 +3,31 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   label: string
   children: ReactNode
+  badge?: number
 }
 
-export function IconButton({ label, children, className = '', ...props }: IconButtonProps) {
+export function IconButton({ label, children, badge, className = '', ...props }: IconButtonProps) {
+  const badgeLabel = badge && badge > 0 ? `, ${badge} new` : ''
+  const displayBadge = badge && badge > 0 ? (badge > 99 ? '99+' : badge) : null
+
   return (
     <button
       type="button"
-      title={label}
-      aria-label={label}
+      title={label + badgeLabel}
+      aria-label={label + badgeLabel}
       className={[
-        'inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-secondary transition',
-        'hover:bg-surface-muted hover:text-ink',
+        'transition-interactive relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-ink-secondary md:h-10 md:w-10',
+        'hover:bg-surface-muted hover:text-ink active:scale-95',
         className,
       ].join(' ')}
       {...props}
     >
       {children}
+      {displayBadge && (
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-white">
+          {displayBadge}
+        </span>
+      )}
     </button>
   )
 }
@@ -58,6 +67,33 @@ export function CommentIcon() {
         stroke="currentColor"
         strokeWidth="1.75"
         strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function TrashIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function PlusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
       />
     </svg>
   )
