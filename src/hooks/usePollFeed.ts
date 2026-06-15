@@ -2,6 +2,20 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { PollOption, PollResultRow, PollWithDetails } from '../lib/types'
 
+function sortPollsByPinThenDate<T extends { pinned_at: string | null; created_at: string }>(
+  polls: T[],
+): T[] {
+  return [...polls].sort((a, b) => {
+    const aPinned = a.pinned_at ? 1 : 0
+    const bPinned = b.pinned_at ? 1 : 0
+    if (bPinned !== aPinned) return bPinned - aPinned
+    if (a.pinned_at && b.pinned_at) {
+      return new Date(b.pinned_at).getTime() - new Date(a.pinned_at).getTime()
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+}
+
 async function fetchPollsWithDetails(
   creatorId: string,
   status: 'active' | 'closed',
@@ -18,7 +32,8 @@ async function fetchPollsWithDetails(
   if (pollsError) throw pollsError
   if (!polls?.length) return []
 
-  const pollIds = polls.map((poll) => poll.id)
+  const orderedPolls = sortPollsByPinThenDate(polls)
+  const pollIds = orderedPolls.map((poll) => poll.id)
 
   const [{ data: options, error: optionsError }, { data: results, error: resultsError }] =
     await Promise.all([
@@ -32,7 +47,7 @@ async function fetchPollsWithDetails(
   const optionsByPoll = groupBy(pollIds, options ?? [], 'poll_id')
   const resultsByPoll = groupBy(pollIds, results ?? [], 'poll_id')
 
-  return polls.map((poll) => {
+  return orderedPolls.map((poll) => {
     const pollResults = (resultsByPoll.get(poll.id) ?? []) as PollResultRow[]
     return {
       ...(poll as PollWithDetails),

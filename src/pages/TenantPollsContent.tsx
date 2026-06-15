@@ -3,9 +3,11 @@ import { Link, Navigate } from 'react-router'
 import { CreatePollForm } from '../components/admin/CreatePollForm'
 import { PollSection } from '../components/PollSection'
 import { useCreatorBySlug } from '../hooks/useCreator'
+import { useSetPollPinned } from '../hooks/useAdmin'
 import { usePollFeed } from '../hooks/usePollFeed'
 import type { Creator } from '../lib/types'
 import { isValidTenantSlug } from '../lib/tenants/routes'
+import { isAdminUnlocked } from '../lib/voter'
 
 interface TenantPollsContentProps {
   slug: string
@@ -34,7 +36,13 @@ export function TenantPollsContent({
 
   const resolvedCreator = creator ?? loadedCreator
   const { activePolls, closedPolls, isLoading, error } = usePollFeed(resolvedCreator?.id)
+  const setPollPinned = useSetPollPinned()
+  const isAdmin = isAdminUnlocked()
   const [openCommentsPollId, setOpenCommentsPollId] = useState<string | null>(null)
+
+  function handleTogglePin(pollId: string, pinned: boolean) {
+    setPollPinned.mutate({ pollId, pinned: !pinned })
+  }
 
   function toggleComments(pollId: string) {
     setOpenCommentsPollId((current) => (current === pollId ? null : pollId))
@@ -116,6 +124,9 @@ export function TenantPollsContent({
           creatorSlug={resolvedCreator.slug}
           commentsOpen={openCommentsPollId === poll.id}
           onToggleComments={() => toggleComments(poll.id)}
+          showPinControl={isAdmin}
+          onTogglePin={() => handleTogglePin(poll.id, Boolean(poll.pinned_at))}
+          isPinPending={setPollPinned.isPending && setPollPinned.variables?.pollId === poll.id}
         />
       ))}
 
@@ -126,6 +137,9 @@ export function TenantPollsContent({
           creatorSlug={resolvedCreator.slug}
           commentsOpen={openCommentsPollId === poll.id}
           onToggleComments={() => toggleComments(poll.id)}
+          showPinControl={isAdmin}
+          onTogglePin={() => handleTogglePin(poll.id, Boolean(poll.pinned_at))}
+          isPinPending={setPollPinned.isPending && setPollPinned.variables?.pollId === poll.id}
         />
       ))}
     </div>

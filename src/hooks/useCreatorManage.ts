@@ -37,6 +37,7 @@ export function useCreatorComments(pollId: string | null) {
       return (data ?? []).map((row) => ({
         ...row,
         is_creator: Boolean(row.is_creator),
+        voter_token: null,
       }))
     },
     enabled: Boolean(user && pollId),

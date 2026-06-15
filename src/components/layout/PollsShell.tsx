@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { SetupBanner } from '../SetupBanner'
 import { Button } from '../ui/Button'
 import { AppTopBar } from './AppTopBar'
 import { PollsTitle } from './PollsTitle'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAuth } from '../../hooks/useAuth'
 import { useCreatorBySlug, useMyCreator } from '../../hooks/useCreator'
 import {
@@ -34,7 +35,7 @@ function tenantRevealClass(
   const shown = onTenant && transition === 'idle'
 
   return [
-    role === 'polls' ? 'polls-tenant-reveal' : '',
+    'polls-tenant-reveal',
     entering ? 'polls-tenant-reveal--enter' : '',
     exiting ? 'polls-tenant-reveal--exit' : '',
     shown && !entering ? 'polls-tenant-reveal--shown' : '',
@@ -49,7 +50,6 @@ export function PollsShell() {
     useHomeTenantTransition()
   const { user } = useAuth()
   const { data: myCreator } = useMyCreator()
-  const isTenantRoute = isTenantHomePath(location.pathname)
   const isHome = location.pathname === '/'
   const activeTenantSlug = (tenantSlug ?? slugFromPathname(location.pathname)).trim().toLowerCase()
   const isEnteringTenant = transition === 'to-tenant' && contentView === 'tenant'
@@ -74,11 +74,24 @@ export function PollsShell() {
       (!creator || myCreator!.id === creator.id),
   )
   const routes = activeTenantSlug ? tenantRoutes(activeTenantSlug) : null
-  const titlePrefix = creator
-    ? possessivePrefix(creator.display_name)
-    : myCreator
-      ? possessivePrefix(myCreator.display_name)
-      : ''
+  const titleIsTenant = contentView === 'tenant'
+
+  const titlePrefix = useMemo(() => {
+    if (contentView !== 'tenant') return ''
+    if (creator) return possessivePrefix(creator.display_name)
+    if (myCreator && myCreator.slug === activeTenantSlug) {
+      return possessivePrefix(myCreator.display_name)
+    }
+    return ''
+  }, [contentView, creator, myCreator, activeTenantSlug])
+
+  const documentTitle = useMemo(() => {
+    if (contentView === 'home') return 'Polls'
+    if (titlePrefix) return `${titlePrefix}Polls`
+    return 'Polls'
+  }, [contentView, titlePrefix])
+
+  useDocumentTitle(documentTitle)
 
   useEffect(() => {
     if (contentView !== 'tenant') setShowCreateDraft(false)
@@ -106,8 +119,6 @@ export function PollsShell() {
   ]
     .filter(Boolean)
     .join(' ')
-
-  const titleIsTenant = contentView === 'tenant' || isTenantRoute
 
   return (
     <div

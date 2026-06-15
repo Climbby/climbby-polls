@@ -4,6 +4,7 @@ import { PollManageList } from '../components/admin/PollManageList'
 import { SetupBanner } from '../components/SetupBanner'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { adminSecret } from '../lib/supabase'
 import { isAdminUnlocked, lockAdmin, unlockAdmin } from '../lib/voter'
 
@@ -14,6 +15,8 @@ export function AdminPage() {
   const [unlocked, setUnlocked] = useState(isAdminUnlocked())
   const [tab, setTab] = useState<AdminTab>('create')
   const [createdMessage, setCreatedMessage] = useState<string | null>(null)
+
+  useDocumentTitle('Admin · Polls')
 
   function handleUnlock(e: React.FormEvent) {
     e.preventDefault()

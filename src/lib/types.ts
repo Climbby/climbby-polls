@@ -22,6 +22,7 @@ export interface Poll {
   closes_at: string | null
   created_at: string
   closed_at: string | null
+  pinned_at: string | null
   poll_categories?: PollCategory | null
 }
 
@@ -65,6 +66,7 @@ export interface PollComment {
   body: string
   option_id: string | null
   is_creator: boolean
+  voter_token: string | null
   created_at: string
 }
 
@@ -96,6 +98,7 @@ export interface AdminPollRow {
   comment_count: number
   created_at: string
   closed_at: string | null
+  pinned_at: string | null
 }
 
 export interface CreatePollOptionInput {

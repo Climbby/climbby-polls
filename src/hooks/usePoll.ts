@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/
 import { applyOptimisticVoteDelta } from '../lib/poll-results'
 import { supabase } from '../lib/supabase'
 import type { PollComment, PollResultRow, PollWithDetails } from '../lib/types'
-import { getVoterToken } from '../lib/voter'
+import { getVoterToken, markOwnComment } from '../lib/voter'
 import { fetchPollBySlug } from './usePollFeed'
 
 type PollResultsCache = { results: PollResultRow[]; totalVotes: number }
@@ -87,7 +87,11 @@ export function usePollComments(pollId: string | undefined) {
         .order('created_at', { ascending: true })
 
       if (error) throw error
-      return data ?? []
+      return (data ?? []).map((row) => ({
+        ...row,
+        is_creator: Boolean(row.is_creator),
+        voter_token: null,
+      }))
     },
     enabled: Boolean(pollId),
   })
@@ -196,18 +200,64 @@ export function useAddComment(pollId: string | undefined) {
     }) => {
       if (!supabase || !pollId) throw new Error('Supabase is not configured')
 
-      const { error } = await supabase.from('poll_comments').insert({
+      const payload = {
         poll_id: pollId,
         author_name: authorName.trim(),
         body: body.trim(),
         option_id: optionId ?? null,
         is_creator: Boolean(isCreator),
+      }
+
+      let result = await supabase
+        .from('poll_comments')
+        .insert({ ...payload, voter_token: getVoterToken() })
+        .select('id')
+        .single()
+
+      if (result.error?.message?.includes('voter_token')) {
+        result = await supabase.from('poll_comments').insert(payload).select('id').single()
+      }
+
+      if (result.error) throw result.error
+      if (result.data?.id) markOwnComment(result.data.id)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['comments', pollId] })
+      void queryClient.invalidateQueries({ queryKey: ['unseen-comments', pollId] })
+    },
+  })
+}
+
+export function useDeleteComment(pollId: string | undefined) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (commentId: string) => {
+      if (!supabase || !pollId) throw new Error('Supabase is not configured')
+
+      const { error } = await supabase.rpc('delete_own_comment', {
+        comment_id_input: commentId,
+        voter_token_input: getVoterToken(),
       })
 
       if (error) throw error
     },
-    onSuccess: () => {
+    onMutate: async (commentId) => {
+      await queryClient.cancelQueries({ queryKey: ['comments', pollId] })
+      const previous = queryClient.getQueryData<PollComment[]>(['comments', pollId])
+      queryClient.setQueryData<PollComment[]>(['comments', pollId], (old) =>
+        old?.filter((comment) => comment.id !== commentId),
+      )
+      return { previous }
+    },
+    onError: (_error, _commentId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['comments', pollId], context.previous)
+      }
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['comments', pollId] })
+      void queryClient.invalidateQueries({ queryKey: ['unseen-comments', pollId] })
     },
   })
 }

@@ -103,6 +103,29 @@ export function useSetPollStatus() {
   })
 }
 
+export function useSetPollPinned() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ pollId, pinned }: { pollId: string; pinned: boolean }) => {
+      if (!supabase) throw new Error('Supabase is not configured')
+
+      const { error } = await supabase.rpc('admin_set_poll_pinned', {
+        admin_secret_input: requireAdminSecret(),
+        poll_id_input: pollId,
+        pinned_input: pinned,
+      })
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['poll-feed'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'polls'] })
+      void queryClient.invalidateQueries({ queryKey: ['polls'] })
+    },
+  })
+}
+
 export function useDeleteComment() {
   const queryClient = useQueryClient()
 

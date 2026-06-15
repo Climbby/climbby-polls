@@ -10,6 +10,8 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { useAuth } from '../hooks/useAuth'
 import { useMyCreator } from '../hooks/useCreator'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { possessivePrefix } from '../lib/possessive'
 import { isValidTenantSlug, tenantRoutes } from '../lib/tenants/routes'
 
 type ManageTab = 'create' | 'manage'
@@ -21,6 +23,10 @@ export function CreatorManagePage() {
   const { data: creator, isLoading: creatorLoading, error } = useMyCreator()
   const [tab, setTab] = useState<ManageTab>('create')
   const [createdMessage, setCreatedMessage] = useState<string | null>(null)
+
+  useDocumentTitle(
+    creator ? `Manage · ${possessivePrefix(creator.display_name)}Polls` : 'Manage · Polls',
+  )
 
   if (!isValidTenantSlug(normalizedSlug)) {
     return <Navigate to="/" replace />
