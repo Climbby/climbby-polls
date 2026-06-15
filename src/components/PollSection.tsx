@@ -143,6 +143,7 @@ export function PollSection({
   const [notesPanelPhase, setNotesPanelPhase] = useState<NotesPanelPhase>('idle')
   const layoutRef = useRef<HTMLDivElement>(null)
   const notesOpenStartedRef = useRef(false)
+  const openSequenceStartedRef = useRef(false)
 
   const isCommentsControlled = onToggleComments !== undefined
   const commentsOpen = isCommentsControlled ? Boolean(commentsOpenProp) : internalCommentsOpen
@@ -193,41 +194,45 @@ export function PollSection({
 
     setCommentsMounted(true)
     setNotesPanelPhase('idle')
+    setNotesSlotPhase('idle')
+    setCommentsAnim('waiting')
     notesOpenStartedRef.current = false
+    openSequenceStartedRef.current = false
+  }, [commentsOpen])
+
+  useEffect(() => {
+    if (!commentsOpen || !commentsMounted || commentsLoading) return
+    if (openSequenceStartedRef.current) return
+    openSequenceStartedRef.current = true
 
     const hasDesktopNotes = creatorComments.length > 0 && isDesktopNotesLayout()
-    setNotesSlotPhase(hasDesktopNotes ? 'enter' : 'idle')
 
-    const delayCommentsEnter =
-      creatorComments.length > 0 && isDesktopNotesLayout() ? COMMENTS_ANIM_MS : 0
+    if (hasDesktopNotes) {
+      setNotesSlotPhase('enter')
+    } else {
+      setCommentsAnim('enter')
+    }
 
-    setCommentsAnim(delayCommentsEnter > 0 ? 'waiting' : 'enter')
-
-    let enterTimer: number | undefined
     let openTimer: number | undefined
     let idleTimer: number | undefined
 
-    if (delayCommentsEnter > 0) {
-      enterTimer = window.setTimeout(() => {
+    const enterTimer = window.setTimeout(() => {
+      if (hasDesktopNotes) {
         setCommentsAnim('enter')
-        openTimer = window.setTimeout(() => {
-          setCommentsAnim('open')
-          idleTimer = window.setTimeout(() => setCommentsAnim('idle'), COMMENTS_ANIM_MS)
-        }, COMMENTS_ANIM_MS)
-      }, delayCommentsEnter)
-    } else {
+      }
+
       openTimer = window.setTimeout(() => {
         setCommentsAnim('open')
         idleTimer = window.setTimeout(() => setCommentsAnim('idle'), COMMENTS_ANIM_MS)
       }, COMMENTS_ANIM_MS)
-    }
+    }, hasDesktopNotes ? COMMENTS_ANIM_MS : 0)
 
     return () => {
-      if (enterTimer !== undefined) window.clearTimeout(enterTimer)
+      window.clearTimeout(enterTimer)
       if (openTimer !== undefined) window.clearTimeout(openTimer)
       if (idleTimer !== undefined) window.clearTimeout(idleTimer)
     }
-  }, [commentsOpen, creatorComments.length])
+  }, [commentsOpen, commentsMounted, commentsLoading, creatorComments.length])
 
   useEffect(() => {
     if (commentsOpen || !commentsMounted) return
@@ -261,6 +266,7 @@ export function PollSection({
       setNotesSlotPhase('idle')
       setNotesPanelPhase('idle')
       notesOpenStartedRef.current = false
+      openSequenceStartedRef.current = false
     }, totalDuration)
 
     return () => {
@@ -439,7 +445,9 @@ export function PollSection({
                   votedOptionId={votedOptionId}
                   isCreatorAuthor={isCreatorAuthor}
                   hideEmptyState={creatorComments.length > 0}
-                  animPhase={commentsAnim === 'enter' || commentsAnim === 'open' ? 'enter' : 'exit'}
+                  animPhase={
+                    commentsAnim === 'enter' || commentsAnim === 'open' ? 'enter' : 'exit'
+                  }
                   onSubmit={(authorName, body, optionId, isCreator) =>
                     addComment.mutate({ authorName, body, optionId, isCreator })
                   }

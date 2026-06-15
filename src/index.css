@@ -403,6 +403,11 @@
     grid-template-rows: 0fr;
   }
 
+  .poll-comments-drawer--closed .poll-comments-drawer__content {
+    opacity: 0;
+    visibility: hidden;
+  }
+
   .poll-comments-drawer--exit {
     animation: comments-drawer-close var(--polls-comments-enter-ms) var(--polls-page-ease-out) forwards;
     pointer-events: none;
